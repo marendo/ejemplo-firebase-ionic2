@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { NavController, AlertController, ActionSheetController } from 'ionic-angular';
 import { AngularFireDatabase, FirebaseListObservable } from 'angularfire2/database';
+import firebase from 'firebase';
 
 @Component({
   selector: 'page-home',
@@ -9,12 +10,32 @@ import { AngularFireDatabase, FirebaseListObservable } from 'angularfire2/databa
 export class HomePage {
 
   songs: FirebaseListObservable<any>;
-
+  
+  songRef:firebase.database.Reference;
+  songsList: Array<any>;
+  loadedSongsList: Array<any>;
+  
   constructor(public navCtrl: NavController, 
               public alertCtrl: AlertController, 
 			  af: AngularFireDatabase, 
 			  public actionSheetCtrl: ActionSheetController) {
+			  
+		// Usando AngularFireDatabase
 		this.songs = af.list('/songs');
+		
+		// Usando metodo nativo de firebase
+		this.songRef = firebase.database().ref('/songs');
+		this.songRef.on('value', songsList => {
+			let songsArray = [];
+			songsList.forEach( song => {
+				songsArray.push(song.val());
+				return false;
+			});
+			
+		this.songsList = songsArray;
+		this.loadedSongsList = songsArray;
+		console.log(this.songsList.length);
+		});
   }
 
   addSong(){
@@ -108,4 +129,34 @@ export class HomePage {
     });
     actionSheet.present();
   }  
+
+  initializeItems(){
+    this.songsList = this.loadedSongsList;
+  }  
+  
+  getItems(searchbar) {
+    // Reset items back to all of the items
+    this.initializeItems();
+    
+    // set q to the value of the searchbar
+    var q = searchbar.srcElement.value;
+
+
+    // if the value is an empty string don't filter the items
+    if (!q) {
+      return;
+    }
+
+    this.songsList = this.songsList.filter((v) => {
+      if(v.title && q) {
+        if (v.title.toLowerCase().indexOf(q.toLowerCase()) > -1) {
+          return true;
+        }
+        return false;
+      }
+    });
+
+    console.log(q, this.songsList.length);
+  }
+
 }
